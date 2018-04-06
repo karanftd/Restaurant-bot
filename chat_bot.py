@@ -19,7 +19,7 @@ def start(bot, update):
     user = update.message.from_user
     logger.info("User %s started the conversation.", user.first_name)
 
-    #TODO : Greet user differently if User visit's again (Based on user.id)
+    #TODO : Greet user differently if User visit again (Based on user.id)
     update.message.reply_text('Hi Welcome to XYZ,\nHow would I help you today?')
 
     return BOOKING
@@ -31,6 +31,8 @@ def booking(bot, update):
 
     # get the user information 
     user = update.message.from_user
+
+    # TODO : update.message.text Parse user Message and derive table booking data
     
     logger.info("booking initiated by %s and recived message %s", user.first_name, update.message.text)
 
@@ -46,6 +48,9 @@ def choice_of_table(bot, update):
     
     # keyboard choice
     reply_keyboard = [['Yes', 'No']]
+
+    # TODO : Handling for No
+    # Exit the chat if User selects No
 
     user = update.message.from_user
     logger.info("%s selection of tables is %s ", user.first_name, update.message.text)
@@ -70,8 +75,9 @@ def send_email(bot,update):
     
     # send email to user
     user = update.message.from_user
+    # TODO : Validate Email
     logger.info("Recieved confirmation from user %s : %s", user.first_name, update.message.text)
-
+    # TODO : Send Email to User 
     update.message.reply_text('Thank you!')
 
     return GOODBYE
@@ -80,8 +86,8 @@ def bye(bot, update):
     
     # send goodbye greetings
     user = update.message.from_user
-    logger.info("Sending email to : %s", update.message.text)
-
+    logger.info("Sending email to : %s", user.first_name)
+    
     update.message.reply_text('it was nice to talking with you %s.',user.first_name)
 
     return ConversationHandler.END
