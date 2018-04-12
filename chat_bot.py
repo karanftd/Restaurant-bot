@@ -26,21 +26,24 @@ book = 'book'
 # identify person
 peopleIdentify = ['people', 'person', 'ppl']
 
+# store user booking information 
 bookings = {}
-
-
 
 def start(bot, update):
     
     # get the user information
     user = update.message.from_user
     logger.info("User %s %s started the conversation.", user.first_name, user.id )
+
+    #TODO : Greet user differently if User visit again (Based on user.id)
+    
+    # update user information in Booking
     bookobj = Booking()
     bookobj.user_id = user.id
     bookobj.name = user.first_name
     bookings[user.id] = bookobj
 
-    #TODO : Greet user differently if User visit again (Based on user.id)
+    # Greet user
     update.message.reply_text('Hi Welcome to XYZ,\nHow would I help you today?')
 
     return BOOKING
@@ -59,17 +62,19 @@ def booking(bot, update):
     if bookobj is not None and bookobj.person is None:
         
         # get the person information from chat message
+        # check the pattern like '2 people/ppl/person'
         people = re.findall(r"(\d{0,2})?\s?(people|person|ppl)",message)
 
+        # check if we found people information
         if people and len(people) > 0:
 
-            print people[0][0]
             bookobj.person = people[0][0]
 
+        # check for the pattern 'for n' people
         elif not bookobj.person:
             
             people = re.findall(r"(for)?\s?(\d)",message)
-            print people
+            
             if people:
                 bookobj.person = people[0][1]
 
@@ -90,6 +95,8 @@ def booking(bot, update):
             time = re.findall(r"(at)\s?(\d)|(\d{0,2}:\d{0,2})",message)
             if bookobj.time:
                 bookobj.time = time[0][1]
+            
+            # suggest user about how he should type request
             reply = 'For what time? (ie. 9:00 PM, 9:30 tonight, 11:30 am)'
             logger.info("unable to get time information from message")
             update.message.reply_text(reply)
@@ -105,26 +112,6 @@ def booking(bot, update):
     
     return CONFIRMATION
 
-'''def choice_of_table(bot, update):
-    
-    # keyboard choice
-    reply_keyboard = [['Yes', 'No']]
-    user = update.message.from_user
-
-    # TODO : Handling for No
-    # Exit the chat if User selects No
-
-    message = update.message.text
-    bookobj = bookings[update.message.from_user.id]
-    bookobj.table = message
-    logger.info("%s selection of tables is %s ", user.first_name, update.message.text)
-
-    update.message.reply_text('Would you like to book this?', 
-                                reply_markup = ReplyKeyboardMarkup(reply_keyboard, 
-                                one_time_keyboard=True))
-    
-    return CONFIRMATION
-'''
 def confirmation(bot, update):
     
     # get user information from User
@@ -200,8 +187,8 @@ def main():
 
     # get the dispacher to register handlers
     dp = updater.dispatcher
+    
     # conversation states
-
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
 
@@ -209,8 +196,6 @@ def main():
 
             BOOKING : [MessageHandler(Filters.text, booking)],
             
-            #CHOOSETABLE: [RegexHandler('^(Beach View|Poolside|Air-Conditioned Hall|Other)$', choice_of_table)],
-
             CONFIRMATION: [MessageHandler(Filters.text, confirmation)],
 
             SENDEMAIL: [MessageHandler(Filters.text, send_email)],
@@ -226,8 +211,8 @@ def main():
     # in case of any error
     dp.add_error_handler(error)
 
-    updater.start_polling()
     #bot will run untll you press Ctrl-C
+    updater.start_polling()
     print "press Ctrl-C for exit \nBot is listening.."
 
     updater.idle()
