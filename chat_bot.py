@@ -4,6 +4,8 @@ from settings import *
 from Booking import Booking
 from send_mail import sendMail
 
+from email_validator import validate_email, EmailNotValidError
+
 from google.cloud import datastore
 
 import re
@@ -189,11 +191,13 @@ def send_email(bot,update):
     user = update.message.from_user
     email = update.message.text
     # TODO : Validate Email
-    if not validate_email(email):
-        
+    try:
+        if validate_email(email):
+            pass    
+    except EmailNotValidError: 
         update.message.reply_text('Please share valid email address.')
-        return SENDEMAIL
-        
+        return SENDEMAIL    
+    
     bookobj = bookings[user.id]
     bookobj.email = email
 
