@@ -25,10 +25,13 @@ python chat_bot.py
 
 ### Flow description:
 
-**Search for KaranFtd_bot in Telegram**
+Search for **KaranFtd_bot** in Telegram
 
+**/start** command to start chatting
 
+Next? Don't worry Bot will guide you.
 
+Still confused? follow video URL below
 
 ## How it runs :
 Following video will showcase the usage how it executes :
