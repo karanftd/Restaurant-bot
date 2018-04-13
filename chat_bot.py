@@ -2,6 +2,7 @@ from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import CommandHandler, Updater, MessageHandler, RegexHandler, ConversationHandler, Filters
 from settings import *
 from Booking import Booking
+from send_mail import sendMail
 
 from google.cloud import datastore
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 datastore_client = datastore.Client(PROJECT_ID)
 
 # Chatting states
-BOOKING, CONFIRMATION, SENDEMAIL, GOODBYE = range(4)
+BOOKING, CHOICE, CONFIRMATION, SENDEMAIL, GOODBYE = range(5)
 
 # identify booking intention 
 book = 'book'
@@ -36,17 +37,74 @@ def start(bot, update):
     logger.info("User %s %s started the conversation.", user.first_name, user.id )
 
     #TODO : Greet user differently if User visit again (Based on user.id)
-    
-    # update user information in Booking
+    query = datastore_client.query(kind='user')
+    query.add_filter('id', '=', user.id)
+    results = list(query.fetch())
     bookobj = Booking()
-    bookobj.user_id = user.id
-    bookobj.name = user.first_name
-    bookings[user.id] = bookobj
+    if len(results) > 0:
+        
+        # User already exist in our database
+        bookobj.name = results[0]['name']
+        bookobj.user_id = results[0]['id']
+        bookobj.person = results[0]['members']
+        bookobj.table = results[0]['last_choice']
+        bookobj.email = results[0]['email']
+        bookobj.time = results[0]['time']
+        bookings[user.id] = bookobj
 
-    # Greet user
-    update.message.reply_text('Hi Welcome to XYZ,\nHow would I help you today?')
+        # keyboard choice
+        reply_keyboard = [['Yes', 'No']]
 
-    return BOOKING
+        update.message.reply_text('Hi Welcome back {}! Would you like to book table same as last time? Table for {}-{} at {}'.format(bookobj.name,
+                                    bookobj.person, bookobj.table, bookobj.time), 
+                                    reply_markup = ReplyKeyboardMarkup(reply_keyboard, 
+                                    one_time_keyboard=True))
+
+        return CHOICE
+
+    else:
+    
+        # update user information in Booking
+        bookobj.user_id = user.id
+        bookobj.name = user.first_name
+        bookings[user.id] = bookobj
+
+        # Greet user
+        update.message.reply_text('Hi Welcome to XYZ,\nHow would I help you today?')
+
+        return BOOKING
+
+def choice(bot, update):
+    
+    # get user information from User
+    user = update.message.from_user
+    # get message from user
+    message = update.message.text
+    bookobj = bookings[update.message.from_user.id]
+    if message.lower() == 'yes':
+        
+        message = 'Thank you {}! Your booking is confirmed, table for {}, {} at {} '.format(
+                                    bookobj.name, bookobj.person, bookobj.table, bookobj.time)
+        
+        update.message.reply_text(message)
+        
+        # send email confirmation
+        sendMail(bookobj)
+
+        return ConversationHandler.END
+
+    else:
+        # Continue with bookings
+        logger.info("Recieved confirmation from user %s : %s", user.first_name, update.message.text)
+        bookobj = bookings[update.message.from_user.id]
+        bookobj.person = None
+        bookobj.table = None
+        bookobj.email = None
+        bookobj.time = None
+        bookings[update.message.from_user.id] = bookobj
+        update.message.reply_text('How may I help you today?')
+        
+        return BOOKING
 
 def booking(bot, update):
     
@@ -131,8 +189,13 @@ def send_email(bot,update):
     user = update.message.from_user
     email = update.message.text
     # TODO : Validate Email
+    if not validate_email(email):
+        
+        update.message.reply_text('Please share valid email address.')
+        return SENDEMAIL
+        
     bookobj = bookings[user.id]
-    bookobj.email = update.message.text
+    bookobj.email = email
 
     logger.info("Recieved confirmation from user %s : %s", user.first_name, update.message.text)
     
@@ -161,6 +224,7 @@ def send_email(bot,update):
                                     bookobj.name, bookobj.person, bookobj.table, bookobj.time)
 
     # TODO : Send Email to User 
+    sendMail(bookobj)
     update.message.reply_text(message)
 
     return ConversationHandler.END
@@ -174,7 +238,15 @@ def bye(bot, update):
     update.message.reply_text('it was nice to talking with you %s.',user.first_name)
 
     return ConversationHandler.END
-    
+
+def exitchat(bot, update):
+    """ gracefully exit chat """
+    logger.warning('Unable to read message from user exiting current chat')
+
+    update.message.reply_text('Sorry %s, unable to understand your message exiting chat. Startover chat again by typing ''\start'.formate(user.first_name))
+
+    return ConversationHandler.END
+
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
@@ -195,6 +267,8 @@ def main():
         states = {
 
             BOOKING : [MessageHandler(Filters.text, booking)],
+
+            CHOICE : [MessageHandler(Filters.text, choice)],
             
             CONFIRMATION: [MessageHandler(Filters.text, confirmation)],
 
