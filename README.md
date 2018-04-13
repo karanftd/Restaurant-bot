@@ -31,5 +31,5 @@ python chat_bot.py
 
 
 ## How it runs :
-Following GIF will showcase the usage how it executes :
-![Working flow](https://s1.gifyu.com/images/jumper420.gif)
+Following video will showcase the usage how it executes :
+[Youtube link](https://youtu.be/wIBWkof7LxU)
