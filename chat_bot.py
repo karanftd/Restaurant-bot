@@ -99,6 +99,9 @@ def choice(bot, update):
         # send email confirmation
         sendMail(bookobj)
 
+        bookobj = Booking()
+        bookings = {}
+
         return ConversationHandler.END
 
     else:
@@ -253,6 +256,9 @@ def send_email(bot,update):
     # Send Email to User 
     sendMail(bookobj)
     update.message.reply_text(message)
+
+    bookobj = Booking()
+    bookings = {}
 
     return ConversationHandler.END
 
