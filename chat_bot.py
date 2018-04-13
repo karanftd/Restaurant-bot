@@ -32,6 +32,7 @@ peopleIdentify = ['people', 'person', 'ppl']
 # store user booking information 
 bookings = {}
 
+""" Entry point for chat bot """
 def start(bot, update):
     
     # get the user information
@@ -52,6 +53,8 @@ def start(bot, update):
         bookobj.table = results[0]['last_choice']
         bookobj.email = results[0]['email']
         bookobj.time = results[0]['time']
+
+        # store in booking dictionaty
         bookings[user.id] = bookobj
 
         # keyboard choice
@@ -76,6 +79,7 @@ def start(bot, update):
 
         return BOOKING
 
+""" Give choice to user 'Yes' for either confirm booking or 'No' for new booking."""
 def choice(bot, update):
     
     # get user information from User
@@ -83,8 +87,10 @@ def choice(bot, update):
     # get message from user
     message = update.message.text
     bookobj = bookings[update.message.from_user.id]
+
     if message.lower() == 'yes':
         
+        # Book the table as last time
         message = 'Thank you {}! Your booking is confirmed, table for {}, {} at {} '.format(
                                     bookobj.name, bookobj.person, bookobj.table, bookobj.time)
         
@@ -96,14 +102,20 @@ def choice(bot, update):
         return ConversationHandler.END
 
     else:
+        
         # Continue with bookings
         logger.info("Recieved confirmation from user %s : %s", user.first_name, update.message.text)
+
+        # get object from dictionaty
         bookobj = bookings[update.message.from_user.id]
+
+        # set value to None in case user wants to book frash table
         bookobj.person = None
         bookobj.table = None
         bookobj.email = None
         bookobj.time = None
         bookings[update.message.from_user.id] = bookobj
+
         update.message.reply_text('How may I help you today?')
         
         return BOOKING
@@ -133,39 +145,49 @@ def booking(bot, update):
         # check for the pattern 'for n' people
         elif not bookobj.person:
             
+            # check the pattern like for 3
             people = re.findall(r"(for)?\s?(\d)",message)
             
             if people:
                 bookobj.person = people[0][1]
 
         else:
+            # unable to find people information suggest user how feed information to bot
             reply = 'For how many people? (ie. for 2 People, 4 ppl or 3 person)' 
+
             logger.info("unable to get people information from message")
+
             update.message.reply_text(reply)
             return BOOKING
     
+    # check for time information 
     if bookobj is not None and bookobj.time is None:
+        
+        # check for pattern '9:00 pm', '9:30 AM'
         time = re.findall(r"(\d{0,2}:\d{0,2})?\s?(am|pm|AM|PM|today|tonight)",message)
 
         if time and len(time) > 0:
             
+            # found time information 
             bookobj.time = time[0][0]
+
         else:
-    
+            # check for pattern 'at 9:30', 'at 10:40'
             time = re.findall(r"(at)\s?(\d)|(\d{0,2}:\d{0,2})",message)
+
             if bookobj.time:
+                
+                # found time information
                 bookobj.time = time[0][1]
             
-            # suggest user about how he should type request
+            # suggest user about how he should feed time information
             reply = 'For what time? (ie. 9:00 PM, 9:30 tonight, 11:30 am)'
             logger.info("unable to get time information from message")
             update.message.reply_text(reply)
             return BOOKING
-    
-    #logger.info("booking initiated by %s and recived message %s", user.first_name, update.message.text)
 
     logger.info("suggesting choice of tables.")
-
+    # suggest choice of tables
     update.message.reply_text('Sure! Do you have any sitting preferences?', 
                                 reply_markup = ReplyKeyboardMarkup(reply_keyboard, 
                                 one_time_keyboard=True))
@@ -178,10 +200,12 @@ def confirmation(bot, update):
     user = update.message.from_user
     bookobj = bookings[user.id]
     message = update.message.text
+
+    # store table information
     bookobj.table = message
     logger.info("Recieved confirmation from user %s : %s", user.first_name, update.message.text)
 
-    update.message.reply_text('Please share your email, we will send you confirmation.')
+    update.message.reply_text('Please share your email, we will send you confirmation email.')
     
     return SENDEMAIL
 
@@ -190,7 +214,7 @@ def send_email(bot,update):
     # send email to user
     user = update.message.from_user
     email = update.message.text
-    # TODO : Validate Email
+    # Validate Email
     try:
         if validate_email(email):
             pass    
@@ -220,14 +244,13 @@ def send_email(bot,update):
     task['name'] = bookobj.name
     task['time'] = bookobj.time
 
+    # store in database
     datastore_client.put(task)
-
-    #booking.put()
 
     message = 'Thank you {}! Your booking is confirmed, table for {}, {} at {} '.format(
                                     bookobj.name, bookobj.person, bookobj.table, bookobj.time)
 
-    # TODO : Send Email to User 
+    # Send Email to User 
     sendMail(bookobj)
     update.message.reply_text(message)
 

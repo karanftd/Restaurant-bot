@@ -1,5 +1,5 @@
-TOKEN = "<<Your-TOKEN>>"
+TOKEN = "578108663:AAEc825DDPiuG5Mcrz4CrzIE7_KONYzqtig"
 
-PROJECT_ID = "<Project-Name>"
+PROJECT_ID = "jumber-bot"
 
-SENDGRIDKEY = "key"
+SENDGRIDKEY = "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"
