@@ -61,5 +61,5 @@ rsa==3.4.2
 sendgrid==5.3.0
 six==1.11.0
 uritemplate==3.0.0
-urllib3==1.22
+urllib3==1.26.5
 validate-email==1.3
